@@ -56,6 +56,12 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 @property (nonatomic, strong) NSString *rateButtonTitle;
 @property (nonatomic, strong) NSString *remindButtonTitle;
 
+//User Satisfaction Alert Properties
+@property (nonatomic, strong) NSString *userSatisfactionTitle;
+@property (nonatomic, strong) NSString *userSatisfactionMessage;
+@property (nonatomic, strong) NSString *userSatisfactionCancelButtonTitle;
+@property (nonatomic, strong) NSString *userSatisfactionAcceptButtonTitle;
+
 // Tracking Logic / Configuration
 @property (nonatomic, strong) NSString          *appID;
 @property (nonatomic, assign) NSUInteger        daysUntilPrompt;
@@ -86,10 +92,17 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 @property (nonatomic, strong) NSString *appReviewManagerKeyPreviousVersionDeclinedToRate;
 @property (nonatomic, strong) NSString *appReviewManagerKeyRatedAnyVersion;
 @property (nonatomic, strong) NSString *appReviewManagerKeyAppiraterMigrationCompleted;
+@property (nonatomic, strong) NSString *appReviewManagerKeyTimeIntervalUsed;
 
 @property (nonatomic, strong) NSString *keyPrefix;
 
 @property (nonatomic, strong) NSObject<UAAppReviewManagerDefaultsObject> *userDefaultsObject;
+
+//Time tracking
+@property (nonatomic, assign) CFTimeInterval startTime;
+@property (nonatomic, assign) CFTimeInterval elapsedTime;
+@property (nonatomic, strong) NSTimer *timer;
+@property (nonatomic, assign) NSTimeInterval timeIntervalUntilPrompt;
 
 // Blocks
 @property (nonatomic, copy) UAAppReviewManagerBlock				didDisplayAlertBlock;
@@ -102,6 +115,8 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 #endif
 @property (nonatomic, copy) UAAppReviewManagerShouldPromptBlock	shouldPromptBlock;
 @property (nonatomic, copy) UAAppReviewManagerShouldIncrementBlock shouldIncrementUseCountBlock;
+
+@property (nonatomic, copy) UAAppReviewManagerBlock             didOptOutOfUserSatisfactionBlock;
 
 // State ivars
 @property (nonatomic, assign) BOOL modalPanelOpen;
@@ -160,6 +175,38 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 + (void)setRemindButtonTitle:(NSString *)remindButtonTitle {
 	[[UAAppReviewManager defaultManager] setRemindButtonTitle:remindButtonTitle];
+}
+
++ (NSString*)userSatisfactionTitle {
+    return [[UAAppReviewManager defaultManager] userSatisfactionTitle];
+}
+
++ (void)setUserSatisfactionTitle:(NSString*)title {
+    [[UAAppReviewManager defaultManager] setUserSatisfactionTitle:title];
+}
+
++ (NSString*)userSatisfactionMessage {
+    return [[UAAppReviewManager defaultManager] userSatisfactionMessage];
+}
+
++ (void)setUserSatisfactionMessage:(NSString*)message {
+    [[UAAppReviewManager defaultManager] setUserSatisfactionMessage:message];
+}
+
++ (NSString*)userSatisfactionCancelButtonTitle {
+    return [[UAAppReviewManager defaultManager] userSatisfactionCancelButtonTitle];
+}
+
++ (void)setUserSatisfactionCancelButtonTitle:(NSString*)cancelButtonTitle {
+    [[UAAppReviewManager defaultManager] setUserSatisfactionCancelButtonTitle:cancelButtonTitle];
+}
+
++ (NSString*)userSatisfactionAcceptButtonTitle {
+    return [[UAAppReviewManager defaultManager] userSatisfactionAcceptButtonTitle];
+}
+
++ (void)setUserSatisfactionAcceptButtonTitle:(NSString*)acceptButtonTitle {
+    [[UAAppReviewManager defaultManager] setUserSatisfactionAcceptButtonTitle:acceptButtonTitle];
 }
 
 + (NSString *)keyForUAAppReviewManagerKeyType:(UAAppReviewManagerKeyType)keyType {
@@ -344,6 +391,10 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 + (void)setOnDidOptToRemindLater:(UAAppReviewManagerBlock)didOptToRemindLaterBlock {
 	[[UAAppReviewManager defaultManager] setDidOptToRemindLaterBlock:didOptToRemindLaterBlock];
+}
+
++ (void)setOnDidOptOutOfUserSatisfaction:(UAAppReviewManagerBlock)didOptOutOfUserSatisfactionBlock {
+    [[UAAppReviewManager defaultManager] setDidOptOutOfUserSatisfactionBlock:didOptOutOfUserSatisfactionBlock];
 }
 
 #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
@@ -605,6 +656,14 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 	return _appReviewManagerKeyAppiraterMigrationCompleted;
 }
 
+- (NSString *)appReviewManagerKeyTimeIntervalUsed {
+	if (!_appReviewManagerKeyTimeIntervalUsed) {
+		// Provide a sensible default
+		self.appReviewManagerKeyTimeIntervalUsed = @"UAAppReviewManagerKeyTimeIntervalUsed";
+	}
+	return _appReviewManagerKeyTimeIntervalUsed;
+}
+
 #pragma mark - PRIVATE Methods
 
 - (void)userDidSignificantEvent:(BOOL)canPromptForRating {
@@ -619,6 +678,36 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 	});
 }
 
+#pragma mark - PRIVATE Time tracking
+
+- (void)launchTimer {
+
+    NSString *elapsedTimeKey = [self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyTimeIntervalUsed];
+    self.elapsedTime = [[self.userDefaultsObject objectForKey:elapsedTimeKey] doubleValue];
+    
+    if (self.elapsedTime > self.timeIntervalUntilPrompt)
+        return;
+
+    self.startTime = CACurrentMediaTime();
+    NSTimeInterval timeLeftUntilPopup = self.timeIntervalUntilPrompt - self.elapsedTime;
+    
+    if (timeLeftUntilPopup > 0) {
+        self.timer = [NSTimer timerWithTimeInterval:timeLeftUntilPopup
+                                             target:self
+                                           selector:@selector(showPrompt)
+                                           userInfo:nil
+                                            repeats:NO];
+        [[NSRunLoop mainRunLoop] addTimer:self.timer forMode:NSRunLoopCommonModes];
+    }
+    else {
+        [self showPrompt];
+    }
+}
+
+- (IBAction)stopTimer {
+    [self.timer invalidate];
+    self.timer = nil;
+}
 
 #pragma mark - PRIVATE Rating Helpers
 
@@ -653,9 +742,37 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     }
 }
 
-
 - (void)incrementSignificantEventCount {
 	[self _incrementCountForKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeySignificantEventCount]];
+}
+
+- (void)incrementTimer {
+    // App's version. Not settable as the other ivars because that would be crazy.
+	NSString *currentVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:(NSString*)kCFBundleVersionKey];
+	
+	// Get the version number that we've been tracking thus far
+	NSString *currentVersionKey = [self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyCurrentVersion];
+	NSString *trackingVersion = [self.userDefaultsObject objectForKey:currentVersionKey];
+	// New install, or changed keys
+	if (!trackingVersion || ![trackingVersion isKindOfClass:[NSString class]]) {
+		trackingVersion = currentVersion;
+	}
+	
+	UAAppReviewManagerDebugLog(@"Tracking version: %@", trackingVersion);
+	
+	if ([trackingVersion isEqualToString:currentVersion]) {
+        
+        //Increment time spent on the app in seconds
+        CFTimeInterval elapsedTimeSinceLaunch = CACurrentMediaTime() - self.startTime;
+        elapsedTimeSinceLaunch += self.elapsedTime;
+        [self.userDefaultsObject setObject:@(elapsedTimeSinceLaunch) forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyTimeIntervalUsed]];
+        
+	} else if (self.tracksNewVersions) {
+		// it's a new version of the app, so restart tracking
+        [self.userDefaultsObject setObject:@0 forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyTimeIntervalUsed]];
+	}
+	
+	[self.userDefaultsObject synchronize];
 }
 
 - (void)_incrementCountForKey:(NSString *)incrementKey {
@@ -682,13 +799,12 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 			timeInterval = [[NSDate date] timeIntervalSince1970];
 			[self.userDefaultsObject setObject:[NSNumber numberWithDouble:timeInterval] forKey:firstUseDateKey];
 		}
-		
+		      
 		// Increment the key's count
 		NSInteger incrementKeyCount = [[self.userDefaultsObject objectForKey:incrementKey] integerValue];
 		incrementKeyCount++;
 		[self.userDefaultsObject setObject:[NSNumber numberWithInteger:incrementKeyCount] forKey:incrementKey];
         
-		
 		UAAppReviewManagerDebugLog(@"%@ count: %ld", incrementKey, (long)incrementKeyCount);
         
 	} else if (self.tracksNewVersions) {
@@ -701,12 +817,12 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 									forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyPreviousVersionDeclinedToRate]];
 		
 		[self.userDefaultsObject setObject:currentVersion forKey:currentVersionKey];
-		[self.userDefaultsObject setObject:[NSNumber numberWithDouble:[[NSDate date] timeIntervalSince1970]] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyFirstUseDate]];
-		[self.userDefaultsObject setObject:[NSNumber numberWithInteger:1] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyUseCount]];
-		[self.userDefaultsObject setObject:[NSNumber numberWithInteger:0] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeySignificantEventCount]];
-		[self.userDefaultsObject setObject:[NSNumber numberWithBool:NO] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyRatedCurrentVersion]];
-		[self.userDefaultsObject setObject:[NSNumber numberWithBool:NO] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
-		[self.userDefaultsObject setObject:[NSNumber numberWithDouble:0] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyReminderRequestDate]];
+		[self.userDefaultsObject setObject:@([[NSDate date] timeIntervalSince1970]) forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyFirstUseDate]];
+		[self.userDefaultsObject setObject:@1 forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyUseCount]];
+		[self.userDefaultsObject setObject:@0 forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeySignificantEventCount]];
+		[self.userDefaultsObject setObject:@NO forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyRatedCurrentVersion]];
+		[self.userDefaultsObject setObject:@NO forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
+		[self.userDefaultsObject setObject:@0 forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyReminderRequestDate]];
 	}
 	
 	[self.userDefaultsObject synchronize];
@@ -728,7 +844,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 		
 		if (shouldPrompt) {
 			dispatch_async(dispatch_get_main_queue(), ^{
-				[self showRatingAlert];
+				[self showUserSatisfactionAlert];
 			});
 		}
 	}
@@ -748,16 +864,30 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     
 	if (shouldPrompt) {
         dispatch_async(dispatch_get_main_queue(), ^{
-			[self showRatingAlert];
+			[self showUserSatisfactionAlert];
 		});
 	}
 }
 
 - (void)showPrompt {
     if (self.appID && [self connectedToNetwork] && ![self userHasDeclinedToRate] && ![self userHasRatedCurrentVersion]) {
-        [self showRatingAlert];
+        [self showUserSatisfactionAlert];
     }
 }
+
+- (void)showUserSatisfactionAlert {
+    
+    UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:self.userSatisfactionTitle
+														message:self.userSatisfactionMessage
+													   delegate:self
+											  cancelButtonTitle:self.userSatisfactionCancelButtonTitle
+											  otherButtonTitles:self.userSatisfactionAcceptButtonTitle, nil];
+    
+    alertView.tag = 1;
+	self.userSatisfactionAlertView = alertView;
+    [alertView show];
+}
+
 
 - (BOOL)ratingConditionsHaveBeenMet {
     
@@ -766,6 +896,12 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 	
 	if (!self.appID)
 		return NO;
+    
+    //We need to calculcate past spent time including current session time.
+    NSTimeInterval pastElapsedTime = [[self.userDefaultsObject objectForKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyTimeIntervalUsed]] doubleValue];
+    CFTimeInterval currentSessionElapsedTime = CACurrentMediaTime() - self.startTime;
+    if (pastElapsedTime + currentSessionElapsedTime < self.timeIntervalUntilPrompt)
+        return NO;
     
 	NSDate *dateOfFirstLaunch = [NSDate dateWithTimeIntervalSince1970:[[self.userDefaultsObject objectForKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyFirstUseDate]] doubleValue]];
 	NSTimeInterval timeSinceFirstLaunch = [[NSDate date] timeIntervalSinceDate:dateOfFirstLaunch];
@@ -863,19 +999,29 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 - (void)alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex {
     
-    // cancelButtonIndex is set to -1 to show the cancel button up top, but a tap on it ends up here with index 0
-	if (alertView.cancelButtonIndex == buttonIndex || 0 == buttonIndex) {
-		// they don't want to rate it
-		[self dontRate];
-		
-	} else if (self.showsRemindButton && alertView.firstOtherButtonIndex == buttonIndex) {
-        // remind them later
-        [self remindMeLater];
-		
-	} else {
-		// they want to rate it
-		[self _rateApp];
-	}
+    if (alertView.tag == 1) {
+        if (alertView.cancelButtonIndex == buttonIndex || 0 == buttonIndex) {
+            [self userSatisfactionNotHappy];
+        }
+        else {
+            [self showRatingAlert];
+        }
+    }
+    else {
+        // cancelButtonIndex is set to -1 to show the cancel button up top, but a tap on it ends up here with index 0
+        if (alertView.cancelButtonIndex == buttonIndex || 0 == buttonIndex) {
+            // they don't want to rate it
+            [self dontRate];
+            
+        } else if (self.showsRemindButton && alertView.firstOtherButtonIndex == buttonIndex) {
+            // remind them later
+            [self remindMeLater];
+            
+        } else {
+            // they want to rate it
+            [self _rateApp];
+        }
+    }
 }
 
 //Delegate call from the StoreKit view.
@@ -930,6 +1076,13 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 }
 
 #endif
+
+- (void)userSatisfactionNotHappy {
+    [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
+    [self.userDefaultsObject synchronize];
+    if (self.didOptOutOfUserSatisfactionBlock)
+        self.didOptOutOfUserSatisfactionBlock();
+}
 
 - (void)dontRate {
 	[self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
@@ -1069,7 +1222,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 		case UAAppReviewManagerKeyPreviousVersionDeclinedToRate:	return [self.keyPrefix stringByAppendingString:[self appReviewManagerKeyPreviousVersionDeclinedToRate]];
 		case UAAppReviewManagerKeyRatedAnyVersion:					return [self.keyPrefix stringByAppendingString:[self appReviewManagerKeyRatedAnyVersion]];
 		case UAAppReviewManagerKeyAppiraterMigrationCompleted:		return [self appReviewManagerKeyAppiraterMigrationCompleted];
-            
+        case UAAppReviewManagerKeyTimeIntervalUsed:                 return [self.keyPrefix stringByAppendingString:[self appReviewManagerKeyTimeIntervalUsed]];
 		default:
 			return nil;
 	}
@@ -1089,6 +1242,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 		case UAAppReviewManagerKeyPreviousVersionDeclinedToRate:	[self setAppReviewManagerKeyPreviousVersionDeclinedToRate:key]; break;
 		case UAAppReviewManagerKeyRatedAnyVersion:					[self setAppReviewManagerKeyRatedAnyVersion:key]; break;
 		case UAAppReviewManagerKeyAppiraterMigrationCompleted:		[self setAppReviewManagerKeyAppiraterMigrationCompleted:key]; break;
+        case UAAppReviewManagerKeyTimeIntervalUsed:                 [self setAppReviewManagerKeyTimeIntervalUsed:key]; break;
 		default:
 			break;
 	}
@@ -1270,7 +1424,9 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 	
 - (void)appWillResignActive:(NSNotification *)notification {
     UAAppReviewManagerDebugLog(@"appWillResignActive:");
+    [self stopTimer];
     [self hideRatingAlert];
+    [self incrementTimer];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
@@ -1278,6 +1434,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
         UAAppReviewManagerDebugLog(@"applicationDidFinishLaunching:");
         [self migrateAppiraterKeysIfNecessary];
         [self incrementUseCount];
+        [self launchTimer];
     });
 }
 
@@ -1286,6 +1443,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
         UAAppReviewManagerDebugLog(@"applicationWillEnterForeground:");
         [self migrateAppiraterKeysIfNecessary];
         [self incrementUseCount];
+        [self launchTimer];
     });
 }
     
@@ -1330,6 +1488,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 }
     
 - (void)setDefaultValues {
+    self.timeIntervalUntilPrompt = 3;
     self.daysUntilPrompt = 30;
     self.usesUntilPrompt = 20;
     self.significantEventsUntilPrompt = 0;

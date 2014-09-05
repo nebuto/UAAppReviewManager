@@ -23,7 +23,8 @@ typedef enum {
 	UAAppReviewManagerKeyPreviousVersionRated,
 	UAAppReviewManagerKeyPreviousVersionDeclinedToRate,
 	UAAppReviewManagerKeyRatedAnyVersion,
-    UAAppReviewManagerKeyAppiraterMigrationCompleted
+    UAAppReviewManagerKeyAppiraterMigrationCompleted,
+    UAAppReviewManagerKeyTimeIntervalUsed
 } UAAppReviewManagerKeyType;
 
 @class UAAppReviewManager;
@@ -46,6 +47,7 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
 @interface UAAppReviewManager : NSObject <UIAlertViewDelegate, SKStoreProductViewControllerDelegate>
 
 @property (nonatomic, strong) UIAlertView *ratingAlert;
+@property (nonatomic, strong) UIAlertView *userSatisfactionAlertView;
 
 #else
 
@@ -105,6 +107,18 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
  */
 + (NSString *)remindButtonTitle;
 + (void)setRemindButtonTitle:(NSString *)remindButtonTitle;
+
++ (NSString*)userSatisfactionTitle;
++ (void)setUserSatisfactionTitle:(NSString*)title;
+
++ (NSString*)userSatisfactionMessage;
++ (void)setUserSatisfactionMessage:(NSString*)message;
+
++ (NSString*)userSatisfactionCancelButtonTitle;
++ (void)setUserSatisfactionCancelButtonTitle:(NSString*)cancelButtonTitle;
+
++ (NSString*)userSatisfactionAcceptButtonTitle;
++ (void)setUserSatisfactionAcceptButtonTitle:(NSString*)acceptButtonTitle;
 
 /*
  * Get/Set the NSUserDefault keys that store the usage data for UAAppReviewManager
@@ -422,6 +436,7 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
 + (void)setOnDeclineToRate:(UAAppReviewManagerBlock)didDeclineToRateBlock;
 + (void)setOnDidOptToRate:(UAAppReviewManagerBlock)didOptToRateBlock;
 + (void)setOnDidOptToRemindLater:(UAAppReviewManagerBlock)didOptToRemindLaterBlock;
++ (void)setOnDidOptOutOfUserSatisfaction:(UAAppReviewManagerBlock)didOptOutOfUserSatisfactionBlock;
 #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
 + (void)setOnWillPresentModalView:(UAAppReviewManagerAnimateBlock)willPresentModalViewBlock;
 + (void)setOnDidDismissModalView:(UAAppReviewManagerAnimateBlock)didDismissModalViewBlock;

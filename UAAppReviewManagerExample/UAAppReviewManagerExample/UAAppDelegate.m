@@ -25,7 +25,25 @@
 	// because it needs to receive application life-cycle notifications,
 	// so we will call a simple method on it here to load it up now.
 	[UAAppReviewManager setDebug:NO];
+    [UAAppReviewManager setAppID:@"364709193"];
+    [UAAppReviewManager setUserSatisfactionMessage:@"Hey, just wondering, do you like the app?"];
+    [UAAppReviewManager setUserSatisfactionAcceptButtonTitle:@"Yes"];
+    [UAAppReviewManager setUserSatisfactionCancelButtonTitle:@"No"];
+    [UAAppReviewManager setReviewMessage:@"Thanks! Please rate us and spread the word :)"];
+    [UAAppReviewManager setCancelButtonTitle:@"Don't have time to rate"];
+    [UAAppReviewManager setRateButtonTitle:@"Rate Wheretoget 5 stars"];
+    [UAAppReviewManager setDaysBeforeReminding:0];
+    [UAAppReviewManager setOnDidOptOutOfUserSatisfaction:^{
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil
+														message:@"Sorry about that :( Please send us your feedback and we promise we'll make you happy!"
+													   delegate:self
+											  cancelButtonTitle:@"No, thanks"
+											  otherButtonTitles:@"Yes, leave feedback", nil];
+        [alert show];
+    }];
 }
+
+
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     [UAAppReviewManager showPromptIfNecessary];
@@ -42,9 +60,6 @@
 		return NO;
 	}];
 }
-
-
-
 
 
 @end
