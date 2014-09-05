@@ -209,6 +209,14 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     [[UAAppReviewManager defaultManager] setUserSatisfactionAcceptButtonTitle:acceptButtonTitle];
 }
 
++ (NSTimeInterval)timeIntervalUntilPrompt {
+    return [[UAAppReviewManager defaultManager] timeIntervalUntilPrompt];
+}
+
++ (void)setTimeIntervalUntilPrompt:(NSTimeInterval)timeIntervalUntilPrompt {
+    [[UAAppReviewManager defaultManager] setTimeIntervalUntilPrompt:timeIntervalUntilPrompt];
+}
+
 + (NSString *)keyForUAAppReviewManagerKeyType:(UAAppReviewManagerKeyType)keyType {
 	return [[UAAppReviewManager defaultManager] keyForUAAppReviewManagerKeyType:keyType];
 }
@@ -882,9 +890,9 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 													   delegate:self
 											  cancelButtonTitle:self.userSatisfactionCancelButtonTitle
 											  otherButtonTitles:self.userSatisfactionAcceptButtonTitle, nil];
-    
+    alertView.cancelButtonIndex = -1;
     alertView.tag = 1;
-	self.userSatisfactionAlertView = alertView;
+	self.userSatisfactionAlert = alertView;
     [alertView show];
 }
 
@@ -1403,6 +1411,11 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 #endif
 
 - (void)hideRatingAlert {
+    if (self.userSatisfactionAlert.isVisible) {
+        UAAppReviewManagerDebugLog(@"Hiding user satisfaction alertview");
+        [self.userSatisfactionAlert dismissWithClickedButtonIndex:-1 animated:NO];
+        self.userSatisfactionAlert = nil;
+    }
 #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
 	if (self.ratingAlert.visible) {
 		UAAppReviewManagerDebugLog(@"Hiding Alert");

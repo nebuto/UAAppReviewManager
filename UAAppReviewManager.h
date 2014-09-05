@@ -47,7 +47,7 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
 @interface UAAppReviewManager : NSObject <UIAlertViewDelegate, SKStoreProductViewControllerDelegate>
 
 @property (nonatomic, strong) UIAlertView *ratingAlert;
-@property (nonatomic, strong) UIAlertView *userSatisfactionAlertView;
+@property (nonatomic, strong) UIAlertView *userSatisfactionAlert;
 
 #else
 
@@ -119,6 +119,9 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
 
 + (NSString*)userSatisfactionAcceptButtonTitle;
 + (void)setUserSatisfactionAcceptButtonTitle:(NSString*)acceptButtonTitle;
+
++ (NSTimeInterval)timeIntervalUntilPrompt;
++ (void)setTimeIntervalUntilPrompt:(NSTimeInterval)timeIntervalUntilPrompt;
 
 /*
  * Get/Set the NSUserDefault keys that store the usage data for UAAppReviewManager
