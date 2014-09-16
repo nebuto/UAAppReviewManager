@@ -444,6 +444,7 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
 + (void)setOnDidOptToRate:(UAAppReviewManagerBlock)didOptToRateBlock;
 + (void)setOnDidOptToRemindLater:(UAAppReviewManagerBlock)didOptToRemindLaterBlock;
 + (void)setOnDidOptOutOfUserSatisfaction:(UAAppReviewManagerBlock)didOptOutOfUserSatisfactionBlock;
++ (void)setOnDidOptInOfUserSatisfaction:(UAAppReviewManagerBlock)didOptInOfUserSatisfactionBlock;
 #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
 + (void)setOnWillPresentModalView:(UAAppReviewManagerAnimateBlock)willPresentModalViewBlock;
 + (void)setOnDidDismissModalView:(UAAppReviewManagerAnimateBlock)didDismissModalViewBlock;

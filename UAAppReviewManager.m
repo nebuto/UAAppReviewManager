@@ -118,7 +118,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 @property (nonatomic, copy) UAAppReviewManagerShouldIncrementBlock shouldIncrementUseCountBlock;
 
 @property (nonatomic, copy) UAAppReviewManagerBlock             didOptOutOfUserSatisfactionBlock;
-
+@property (nonatomic, copy) UAAppReviewManagerBlock             didOptInOfUserSatisfactionBlock;
 // State ivars
 @property (nonatomic, assign) BOOL modalPanelOpen;
 #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
@@ -224,6 +224,8 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 + (void)setShouldStartTimer:(BOOL)shouldStartTimer {
     [[[UAAppReviewManager defaultManager] userDefaultsObject] setObject:@(shouldStartTimer) forKey:[[UAAppReviewManager defaultManager] keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]];
+    [[[UAAppReviewManager defaultManager] userDefaultsObject] synchronize];
+
     if (shouldStartTimer)
         [[UAAppReviewManager defaultManager] launchTimer];
     else
@@ -415,6 +417,9 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 + (void)setOnDidOptOutOfUserSatisfaction:(UAAppReviewManagerBlock)didOptOutOfUserSatisfactionBlock {
     [[UAAppReviewManager defaultManager] setDidOptOutOfUserSatisfactionBlock:didOptOutOfUserSatisfactionBlock];
+}
++ (void)setOnDidOptInOfUserSatisfactionBlock:(UAAppReviewManagerBlock)didOptInOfUserSatisfactionBlock {
+    [[UAAppReviewManager defaultManager] setDidOptInOfUserSatisfactionBlock:didOptInOfUserSatisfactionBlock];
 }
 
 #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
@@ -1036,9 +1041,10 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     
     if (alertView.tag == 1) {
         if (alertView.cancelButtonIndex == buttonIndex || 0 == buttonIndex) {
-            [self userSatisfactionNotHappy];
+            [self userSatisfactionOptOut];
         }
         else {
+            [self userSatisfactionOptIn];
             [self showRatingAlert];
         }
     }
@@ -1112,12 +1118,20 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 #endif
 
-- (void)userSatisfactionNotHappy {
+- (void)userSatisfactionOptOut {
     [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
     [self.userDefaultsObject synchronize];
     if (self.didOptOutOfUserSatisfactionBlock)
         self.didOptOutOfUserSatisfactionBlock();
 }
+
+- (void)userSatisfactionOptIn {
+    [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
+    [self.userDefaultsObject synchronize];
+    if (self.didOptInOfUserSatisfactionBlock)
+        self.didOptInOfUserSatisfactionBlock();
+}
+
 
 - (void)dontRate {
 	[self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
