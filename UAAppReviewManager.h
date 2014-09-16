@@ -24,7 +24,8 @@ typedef enum {
 	UAAppReviewManagerKeyPreviousVersionDeclinedToRate,
 	UAAppReviewManagerKeyRatedAnyVersion,
     UAAppReviewManagerKeyAppiraterMigrationCompleted,
-    UAAppReviewManagerKeyTimeIntervalUsed
+    UAAppReviewManagerKeyTimeIntervalUsed,
+    UAAppReviewManagerKeyShouldStartTimer
 } UAAppReviewManagerKeyType;
 
 @class UAAppReviewManager;
@@ -122,6 +123,9 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
 
 + (NSTimeInterval)timeIntervalUntilPrompt;
 + (void)setTimeIntervalUntilPrompt:(NSTimeInterval)timeIntervalUntilPrompt;
+
+- (BOOL)shouldStartTimer;
+- (void)setShouldStartTimer:(BOOL)shouldStartTimer;
 
 /*
  * Get/Set the NSUserDefault keys that store the usage data for UAAppReviewManager

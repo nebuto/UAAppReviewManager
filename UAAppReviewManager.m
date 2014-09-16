@@ -93,6 +93,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 @property (nonatomic, strong) NSString *appReviewManagerKeyRatedAnyVersion;
 @property (nonatomic, strong) NSString *appReviewManagerKeyAppiraterMigrationCompleted;
 @property (nonatomic, strong) NSString *appReviewManagerKeyTimeIntervalUsed;
+@property (nonatomic, strong) NSString *appReviewManagerKeyShouldStartTimer;
 
 @property (nonatomic, strong) NSString *keyPrefix;
 
@@ -216,6 +217,16 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 + (void)setTimeIntervalUntilPrompt:(NSTimeInterval)timeIntervalUntilPrompt {
     [[UAAppReviewManager defaultManager] setTimeIntervalUntilPrompt:timeIntervalUntilPrompt];
 }
+
+- (BOOL)shouldStartTimer {
+    return [[self.userDefaultsObject objectForKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]] boolValue];
+}
+
+- (void)setShouldStartTimer:(BOOL)shouldStartTimer {
+    [self.userDefaultsObject setObject:@(shouldStartTimer) forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]];
+    [self launchTimer];
+}
+
 
 + (NSString *)keyForUAAppReviewManagerKeyType:(UAAppReviewManagerKeyType)keyType {
 	return [[UAAppReviewManager defaultManager] keyForUAAppReviewManagerKeyType:keyType];
@@ -672,6 +683,14 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 	return _appReviewManagerKeyTimeIntervalUsed;
 }
 
+- (NSString *)appReviewManagerKeyShouldStartTimer {
+    if (!_appReviewManagerKeyShouldStartTimer) {
+        // Provide a sensible default
+        self.appReviewManagerKeyShouldStartTimer = @"UAAppReviewManagerKeyShouldStartTimer";
+    }
+    return _appReviewManagerKeyShouldStartTimer;
+}
+
 #pragma mark - PRIVATE Methods
 
 - (void)userDidSignificantEvent:(BOOL)canPromptForRating {
@@ -694,6 +713,9 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     self.elapsedTime = [[self.userDefaultsObject objectForKey:elapsedTimeKey] doubleValue];
     
     if (self.elapsedTime > self.timeIntervalUntilPrompt)
+        return;
+    
+    if (!self.shouldStartTimer)
         return;
 
     self.startTime = CACurrentMediaTime();
@@ -1509,6 +1531,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     self.tracksNewVersions = YES;
     self.shouldPromptIfRated = YES;
     self.debugEnabled = NO;
+    self.shouldStartTimer = NO;
     self.useMainAppBundleForLocalizations = NO;
     // If you aren't going to set an affiliate code yourself, please leave this as is.
     // It is my affiliate code. It is better that somebody's code is used rather than nobody's.
