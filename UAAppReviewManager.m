@@ -218,13 +218,13 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     [[UAAppReviewManager defaultManager] setTimeIntervalUntilPrompt:timeIntervalUntilPrompt];
 }
 
-- (BOOL)shouldStartTimer {
-    return [[self.userDefaultsObject objectForKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]] boolValue];
++ (BOOL)shouldStartTimer {
+    return [[[[UAAppReviewManager defaultManager] userDefaultsObject] objectForKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]] boolValue];
 }
 
-- (void)setShouldStartTimer:(BOOL)shouldStartTimer {
-    [self.userDefaultsObject setObject:@(shouldStartTimer) forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]];
-    [self launchTimer];
++ (void)setShouldStartTimer:(BOOL)shouldStartTimer {
+    [[[UAAppReviewManager defaultManager] userDefaultsObject] setObject:@(shouldStartTimer) forKey:[[UAAppReviewManager defaultManager] keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]];
+    [[UAAppReviewManager defaultManager] launchTimer];
 }
 
 

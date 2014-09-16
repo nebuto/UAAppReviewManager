@@ -124,8 +124,8 @@ typedef BOOL (^UAAppReviewManagerShouldIncrementBlock)(void);
 + (NSTimeInterval)timeIntervalUntilPrompt;
 + (void)setTimeIntervalUntilPrompt:(NSTimeInterval)timeIntervalUntilPrompt;
 
-- (BOOL)shouldStartTimer;
-- (void)setShouldStartTimer:(BOOL)shouldStartTimer;
++ (BOOL)shouldStartTimer;
++ (void)setShouldStartTimer:(BOOL)shouldStartTimer;
 
 /*
  * Get/Set the NSUserDefault keys that store the usage data for UAAppReviewManager
