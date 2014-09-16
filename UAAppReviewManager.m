@@ -227,7 +227,6 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     [[UAAppReviewManager defaultManager] launchTimer];
 }
 
-
 + (NSString *)keyForUAAppReviewManagerKeyType:(UAAppReviewManagerKeyType)keyType {
 	return [[UAAppReviewManager defaultManager] keyForUAAppReviewManagerKeyType:keyType];
 }
@@ -243,7 +242,6 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 + (void)setKeyPrefix:(NSString *)keyPrefix {
 	[[UAAppReviewManager defaultManager] setKeyPrefix:keyPrefix];
 }
-
 
 + (NSObject<UAAppReviewManagerDefaultsObject> *)userDefaultsObject {
 	return [[UAAppReviewManager defaultManager] userDefaultsObject];
@@ -715,7 +713,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     if (self.elapsedTime > self.timeIntervalUntilPrompt)
         return;
     
-    if (!self.shouldStartTimer)
+    if (![UAAppReviewManager shouldStartTimer])
         return;
 
     self.startTime = CACurrentMediaTime();
@@ -853,6 +851,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 		[self.userDefaultsObject setObject:@NO forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyRatedCurrentVersion]];
 		[self.userDefaultsObject setObject:@NO forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
 		[self.userDefaultsObject setObject:@0 forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyReminderRequestDate]];
+        [self.userDefaultsObject setObject:@0 forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]];
 	}
 	
 	[self.userDefaultsObject synchronize];
@@ -1531,7 +1530,6 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     self.tracksNewVersions = YES;
     self.shouldPromptIfRated = YES;
     self.debugEnabled = NO;
-    self.shouldStartTimer = NO;
     self.useMainAppBundleForLocalizations = NO;
     // If you aren't going to set an affiliate code yourself, please leave this as is.
     // It is my affiliate code. It is better that somebody's code is used rather than nobody's.
