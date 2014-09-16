@@ -715,6 +715,9 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     
     if (![UAAppReviewManager shouldStartTimer])
         return;
+    
+    if ([self.timer isValid])
+        return;
 
     self.startTime = CACurrentMediaTime();
     NSTimeInterval timeLeftUntilPopup = self.timeIntervalUntilPrompt - self.elapsedTime;
