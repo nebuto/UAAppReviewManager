@@ -738,7 +738,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     }
 }
 
-- (IBAction)stopTimer {
+- (void)stopTimer {
     [self.timer invalidate];
     self.timer = nil;
 }
