@@ -418,7 +418,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 + (void)setOnDidOptOutOfUserSatisfaction:(UAAppReviewManagerBlock)didOptOutOfUserSatisfactionBlock {
     [[UAAppReviewManager defaultManager] setDidOptOutOfUserSatisfactionBlock:didOptOutOfUserSatisfactionBlock];
 }
-+ (void)setOnDidOptInOfUserSatisfactionBlock:(UAAppReviewManagerBlock)didOptInOfUserSatisfactionBlock {
++ (void)setOnDidOptInOfUserSatisfaction:(UAAppReviewManagerBlock)didOptInOfUserSatisfactionBlock {
     [[UAAppReviewManager defaultManager] setDidOptInOfUserSatisfactionBlock:didOptInOfUserSatisfactionBlock];
 }
 
