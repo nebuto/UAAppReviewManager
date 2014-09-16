@@ -224,7 +224,10 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 + (void)setShouldStartTimer:(BOOL)shouldStartTimer {
     [[[UAAppReviewManager defaultManager] userDefaultsObject] setObject:@(shouldStartTimer) forKey:[[UAAppReviewManager defaultManager] keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyShouldStartTimer]];
-    [[UAAppReviewManager defaultManager] launchTimer];
+    if (shouldStartTimer)
+        [[UAAppReviewManager defaultManager] launchTimer];
+    else
+        [[UAAppReviewManager defaultManager] stopTimer];
 }
 
 + (NSString *)keyForUAAppReviewManagerKeyType:(UAAppReviewManagerKeyType)keyType {
