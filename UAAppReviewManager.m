@@ -729,6 +729,9 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
     if (![UAAppReviewManager shouldStartTimer])
         return;
     
+    if ([[self.userDefaultsObject objectForKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyRatedAnyVersion]] boolValue])
+        return;
+    
     if ([self.timer isValid])
         return;
     
@@ -1127,6 +1130,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 - (void)userSatisfactionOptOut {
     [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
+    [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyRatedAnyVersion]];
     [self.userDefaultsObject synchronize];
     if (self.didOptOutOfUserSatisfactionBlock)
         self.didOptOutOfUserSatisfactionBlock();
@@ -1134,6 +1138,7 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 - (void)userSatisfactionOptIn {
     [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
+    [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyRatedAnyVersion]];
     [self.userDefaultsObject synchronize];
     if (self.didOptInOfUserSatisfactionBlock)
         self.didOptInOfUserSatisfactionBlock();
@@ -1142,6 +1147,8 @@ static NSString * const reviewURLTemplate                   = @"macappstore://it
 
 - (void)dontRate {
     [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyDeclinedToRate]];
+    [self.userDefaultsObject setObject:[NSNumber numberWithBool:YES] forKey:[self keyForUAAppReviewManagerKeyType:UAAppReviewManagerKeyRatedAnyVersion]];
+    
     [self.userDefaultsObject synchronize];
     if (self.didDeclineToRateBlock)
         self.didDeclineToRateBlock();
